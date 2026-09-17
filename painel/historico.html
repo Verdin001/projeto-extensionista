@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Histórico de Ocorrências</title>
+    <style>
+        body { background-color: #f4f4f9; color: #333; font-family: Arial, sans-serif; padding: 20px; }
+        h1 { text-align: center; color: #2c3e50; }
+        table { width: 100%; max-width: 1000px; margin: 20px auto; border-collapse: collapse; background-color: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        th, td { padding: 15px; text-align: center; border-bottom: 1px solid #ddd; }
+        th { background-color: #2c3e50; color: white; }
+        tr:hover { background-color: #f1f1f1; }
+        .status-pendente { color: #e74c3c; font-weight: bold; }
+        .status-atendido { color: #27ae60; font-weight: bold; }
+        .btn-voltar { display: block; width: 200px; margin: 0 auto; padding: 10px; text-align: center; background-color: #34495e; color: white; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <h1>Histórico de Testes e Ocorrências</h1>
+    
+    <a href="index.html" class="btn-voltar">Voltar para o Painel</a>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Setor (Local)</th>
+                <th>Máquina</th>
+                <th>Usuário Solicitante</th>
+                <th>Data e Hora</th>
+                <th>Status</th>
+                <th>Agente de Atendimento</th>
+            </tr>
+        </thead>
+        <tbody id="tabela-historico">
+            <!-- Os dados vão aparecer aqui -->
+        </tbody>
+    </table>
+
+    <script>
+        function identificarSetor(nomeMaquina) {
+            const nome = nomeMaquina.toLowerCase();
+            if (nome.includes("emerg")) return "Emergência";
+            if (nome.includes("cc-") || nome.includes("cc")) return "Centro Cirúrgico";
+            return "Setor Não Mapeado";
+        }
+
+        async function carregarHistorico() {
+            try {
+                // Acessa a nova rota da API
+                const resposta = await fetch("http://localhost:8080/api/alertas/historico");
+                const alertas = await resposta.json();
+                
+                const tabela = document.getElementById("tabela-historico");
+                tabela.innerHTML = ""; 
+
+                alertas.forEach(alerta => {
+                    const tr = document.createElement("tr");
+                    
+                    const dataFormatada = new Date(alerta.dataHora).toLocaleString('pt-BR');
+                    const setor = identificarSetor(alerta.nomeMaquina);
+                    
+                    // Lógica para colorir o status e lidar com campos vazios (null)
+                    const classeStatus = alerta.statusAtendimento === "PENDENTE" ? "status-pendente" : "status-atendido";
+                    const agente = alerta.agenteAtendimento ? alerta.agenteAtendimento : "Aguardando...";
+
+                    tr.innerHTML = `
+                        <td>${alerta.id}</td>
+                        <td><strong>${setor.toUpperCase()}</strong></td>
+                        <td>${alerta.nomeMaquina.toUpperCase()}</td>
+                        <td>${alerta.usuarioAd}</td>
+                        <td>${dataFormatada}</td>
+                        <td class="${classeStatus}">${alerta.statusAtendimento}</td>
+                        <td>${agente}</td>
+                    `;
+                    tabela.appendChild(tr);
+                });
+            } catch (erro) {
+                console.error("Erro ao conectar com a API:", erro);
+            }
+        }
+
+        // Carrega os dados assim que a página é aberta
+        carregarHistorico();
+    </script>
+</body>
+</html>
